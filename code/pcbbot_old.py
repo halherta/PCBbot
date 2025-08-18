@@ -7,17 +7,17 @@ class RobotDirection:
     REV = 2
     BRK = 3
     LEFT = 4
-    CKW = 4  # turning left same as clockwise (should be turning right but ignore for now)
-    RIGHT = 5 # turning Right same as counterclockwise (should be turning left but ignore for now)
+    CKW = 4
+    RIGHT = 5
     CCKW = 5
     
-class MotorDirection: # motor state
+class MotorDirection:
     STP = 0
     FWD = 1
     REV = 2
     BRK = 3
         
-class PCBBotPins: # pcbbot pin assignment from schematic
+class PCBBotPins:
     AN0 = 2
     AN1 = 1
     AN2 = 4
@@ -38,25 +38,20 @@ class PCBBotPins: # pcbbot pin assignment from schematic
     MOT2ENCB = 14
     
 class PCBBot:
-    def __init__(self): # constructor initializes all pins
-        # initializing standard GPIO pins connected to motors as digital out
-        # They configure motor state
+    def __init__(self):
         self.mot1a = Pin(PCBBotPins.MOT1A, Pin.OUT)
         self.mot1b = Pin(PCBBotPins.MOT1B, Pin.OUT)
         self.mot2a = Pin(PCBBotPins.MOT2A, Pin.OUT)
         self.mot2b = Pin(PCBBotPins.MOT2B, Pin.OUT)
-        # initializing PWM pins connected to motors
-        # They configure motor speed        
         self.mot1en = PWM(Pin(PCBBotPins.MOT1EN), freq=500, duty_u16=65535)
         self.mot2en = PWM(Pin(PCBBotPins.MOT2EN), freq=500, duty_u16=65535)
-        # initializing all Ultrasonic sensor GPIO pins (echo-> out) & (trigger -> in)
+        
         self.ech1 = Pin(PCBBotPins.ECH1,mode=Pin.IN, pull=None)
         self.trg1 = Pin(PCBBotPins.TRG1, mode=Pin.OUT, pull=None)
         
         self.ech2 = Pin(PCBBotPins.ECH2,mode=Pin.IN, pull=None)
         self.trg2 = Pin(PCBBotPins.TRG2, mode=Pin.OUT, pull=None)
-        # initializing all analog pins to analog...
-        # read analog voltage from line following sensor
+        
         self.an0 = ADC(PCBBotPins.AN0)
         self.an1 = ADC(PCBBotPins.AN1)
         self.an2 = ADC(PCBBotPins.AN2)
@@ -66,13 +61,6 @@ class PCBBot:
         self.line_following_mode=False
         
     def mot1_move(self,direction=MotorDirection.STP, speed=0.5):
-         """
-        control state and speed of motor1 (left motor when robot is facing away)
-        
-        Args:
-            direction: motor state. defaults to the STOP state
-            speed: motor speed. effectively the duty cycle 0.0->0% 1.0-> 100% 
-        """
         if direction == MotorDirection.BRK :
             self.mot1a.value(1)
             self.mot1b.value(1)
@@ -89,13 +77,6 @@ class PCBBot:
         self.mot1en.duty_u16(int(speed*65535))
         
     def mot2_move(self,direction=MotorDirection.STP, speed=0.5):
-    """
-    control state and speed of motor2 (right motor when robot is facing away)
-        
-    Args:
-        direction: motor state. defaults to the STOP state
-        speed: motor speed. effectively the duty cycle 0.0->0% 1.0-> 100% 
-    """
         if direction == MotorDirection.BRK :
             self.mot2a.value(1)
             self.mot2b.value(1)
@@ -112,14 +93,6 @@ class PCBBot:
         self.mot2en.duty_u16(int(speed*65535))   
     
     def robot_move(self, direction=RobotDirection.STP,speedmot1=0.5, speedmot2=0.5):
-    """
-    control motor movement
-        
-    Args:
-        direction: robot movement direction. defaults to the STOP state
-        speedmot1: motor speed for motor1. effectively the duty cycle 0.0->0% 1.0-> 100%
-        speedmot2: motor speed for motor2. effectively the duty cycle 0.0->0% 1.0-> 100% 
-    """
         if direction == RobotDirection.BRK :
             self.mot1_move(MotorDirection.BRK, 1.0)
             self.mot2_move(MotorDirection.BRK, 1.0)
@@ -140,15 +113,6 @@ class PCBBot:
             self.mot2_move(MotorDirection.STP, 1.0)
     
     def robot_move_with_delay(self, direction=RobotDirection.STP, delay_ms=100, speedmot1=0.5, speedmot2=0.5):
-        """
-    control motor movement with a delay
-        
-    Args:
-        direction: robot movement direction. defaults to the STOP state
-        delay_ms: delay in milliseconds
-        speedmot1: motor speed for motor1. effectively the duty cycle 0.0->0% 1.0-> 100%
-        speedmot2: motor speed for motor2. effectively the duty cycle 0.0->0% 1.0-> 100% 
-    """
         self.robot_move(direction,speedmot1, speedmot2)
         time.sleep_ms(delay_ms)
         self.robot_move(RobotDirection.BRK,1.0, 1.0)
@@ -156,25 +120,9 @@ class PCBBot:
         
         
     def read_line_sensors(self):
-    """
-    read data from line following sensors (tcrt5000) and return them in a tuple of four values;
-    sensor_right, sensor_mid_right, sensor_mid_left, sensor_left
-        
-    Args:
-       None
-    Return: A tuple of four values representing readings from: (sensor_right, sensor_mid_right, sensor_mid_left, sensor_left)
-    """
         return self.an0.read_uv()/1.0e6, self.an1.read_uv()/1.0e6, self.an2.read_uv()/1.0e6, self.an3.read_uv()/1.0e6
 
     def ultrasonic_left(self,timeout_us=30000):
-    """
-    read distance to nearest object from left ultrasonic sensor
-        
-    Args:
-       timeout_us: timeout if echo pulse is not received in microseconds
-       
-    Return: distance to nearest object in millimetres. Returns a -1 or -2 if failed to get a reading or timed out
-    """        
         self.trg1.value(0) # Stabilize the sensor
         time.sleep_ms(1)
         # Send a 10us pulse.
@@ -191,14 +139,6 @@ class PCBBot:
             return mm
 
     def ultrasonic_right(self,timeout_us=30000):
-    """
-    read distance to nearest object from left ultrasonic sensor
-        
-    Args:
-       timeout_us: timeout if echo pulse is not received in microseconds
-       
-    Return: distance to nearest object in millimetres. Returns a -1 or -2 if failed to get a reading or timed out
-    """    
         self.trg2.value(0) # Stabilize the sensor
         time.sleep_ms(1)
         
@@ -216,7 +156,7 @@ class PCBBot:
             return mm
         
     def enable_object_avoidance_timed(self, distance_th, back_delay_ms, right_delay_ms, left_delay_ms, fwd_speed, manoeuvre_speed, duration_ms):
-    """
+        """
         Run obstacle avoidance for a specific duration
     
         Args:
@@ -227,7 +167,7 @@ class PCBBot:
             fwd_speed: Forward movement speed (0.0-1.0)
             manoeuvre_speed: Speed for maneuvers (0.0-1.0)
             duration_ms: How long to run obstacle avoidance in milliseconds
-    """
+        """
         print(f"Starting obstacle avoidance for {duration_ms}ms")
         self.obstacle_avoidance_mode=True
         self.robot_move(RobotDirection.FWD, fwd_speed, fwd_speed)
@@ -271,7 +211,7 @@ class PCBBot:
         self.obstacle_avoidance_mode = False
 
     def enable_line_following_timed(self, base_speed, turn_speed, duration_ms):
-    """
+        """
         Run line following for a specific duration using 4 TCRT5000 sensors
         
         Args:
@@ -339,8 +279,37 @@ class PCBBot:
         self.line_following_mode = False    
 
 
-# example usage from a main.py script (or boot.py)
 
-# from pcbbot import PCBBot 
-# bot = PCBBot()
-# bot.enable_line_following_timed(0.5, 0.3, 15000)
+#     def enable_object_avoidance_mode(self, distance_th, back_delay_ms, right_delay_ms, left_delay_ms, fwd_speed, manoeuvre_speed):
+#         self.obstacle_avoidance_mode = True
+#         #self.robot_move(RobotDirection.FWD,fwd_speed,fwd_speed)
+#         while self.obstacle_avoidance_mode == True:
+#             time.sleep_us(100)
+#             distance_right = self.ultrasonic_right()
+#             time.sleep_us(100)
+#             distance_left = self.ultrasonic_left()
+#             time.sleep_us(100)
+#             print(f"distance right: {distance_right}, distance_left: {distance_left}")
+#             if(distance_right < distance_left and distance_right < distance_th):
+#                 self.robot_move_with_delay(RobotDirection.STP,100)
+#                 self.robot_move_with_delay(RobotDirection.REV,back_delay_ms,manoeuvre_speed,manoeuvre_speed)
+#                 self.robot_move_with_delay(RobotDirection.LEFT,left_delay_ms,manoeuvre_speed,manoeuvre_speed)
+#                 self.robot_move(RobotDirection.FWD,fwd_speed,fwd_speed)
+#             elif(distance_left < distance_right and distance_left < distance_th):
+#                 self.robot_move_with_delay(RobotDirection.STP,100)
+#                 self.robot_move_with_delay(RobotDirection.REV,back_delay_ms,manoeuvre_speed,manoeuvre_speed)
+#                 self.robot_move_with_delay(RobotDirection.RIGHT,left_delay_ms,manoeuvre_speed,manoeuvre_speed)
+#                 self.robot_move(RobotDirection.FWD,fwd_speed,fwd_speed) 
+#             else:
+#                 self.robot_move(RobotDirection.FWD,fwd_speed,fwd_speed)
+#             time.sleep_us(100000)
+#                 
+
+
+#bot = PCBBot()
+#while True:
+#    (r, mr, ml, l) = bot.read_line_sensors()
+#    print(f'Left: {l}, Middle Left: {ml}, Middle Right: {mr}, Right: {r}')
+#    time.sleep_ms(1000)
+    
+#bot.enable_line_following_timed(0.5, 0.3, 10):
